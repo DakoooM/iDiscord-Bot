@@ -1,10 +1,10 @@
 const prefix = "/" /* My Prefix */
 const DakoM = [] /* My Own Table */
+AllReason = []
 const Discord = require('discord.js'); /* get Discord JS Librairy */
 const client = new Discord.Client();
 require('discord-buttons')(client); /* get Discord JS Buttons Librairy */
-
-DakoM.MyToken = "ODAwODMyMTIxODQ0NzkzMzQ0.YAX3CA.AtFzloY2uAPLRD-eGot8mB82py8"
+DakoM.MyToken = "ODAwODMyMTIxODQ0NzkzMzQ0.YAX3CA.mqSgmzGJ9rGAsMFbFpzOHJ4LbPI" /* Token For launch Discord Bot */
 
 DakoM.getTime = function() {
     var today = new Date();
@@ -14,7 +14,8 @@ DakoM.getTime = function() {
 }
 
 client.on('ready', () => {
-	console.log(`${client.user.tag} Is Online on Discord !`);
+    client.user.setActivity("1 Membres", {type: 'WATCHING'})
+    console.log(`${client.user.tag} Is Online on Discord and activity 1 Members has been updated !`)
 });
 
 client.on('message', message => {
@@ -39,29 +40,37 @@ client.on('message', message => {
         .setFooter("Created By DakoM#6583")
         message.channel.send(InfosEmbed)
 	} else if (command === 'sondage') {
-        if (args[0] !== undefined && args[1] !== undefined && args[2] !== undefined) {
-            const disbut = require("discord-buttons");
+        let reason = args[0];
+        if (reason !== undefined /* && Question !== undefined */) {
+            for (var index = 0; index <= 40; index++) {
+                if (args[index] !== undefined) {
+                    AllReason = [args[index]]
+                    console.log("IN CONDITION FOR", AllReason)
+                };
+            }
             let SondageEmbed = new Discord.MessageEmbed()
             .setColor('PURPLE')
-            .setTitle('Question a mettre')
             .setAuthor('Sondage')
-            // .setThumbnail("https://media1.tenor.com/images/54cc77830f82ef67471d8d868d09ad2f/tenor.gif")
-            .addField('__I -__', 'Je m\'appel Giovani et j\'ai actuellement 18 ans (19 le 2 septembre)')
-            .addField('__II -__', 'J\'aime particulièrement apprendre de nouvelle chose dans le développement depuis 1 an')
-            .addField('────────────────────────────────────', ' ឵ ឵   ឵ ឵ ')
+            .addField('__Question:__', ...AllReason)
+            .setThumbnail(message.author.displayAvatarURL())
             .setTimestamp()
-            .setFooter("Created By DakoM#6583")
+            .setFooter(`Sondage Crée par ${message.author.name}`)
+            const disbut = require("discord-buttons");
             let buttonYes = new disbut.MessageButton()
             .setLabel("Oui")
+            .setID("ID")
             .setStyle("green")
             let buttonNo = new disbut.MessageButton()
             .setLabel("Non")
+            .setID("ID")
             .setStyle("red")
-            message.channel.send("Votez", SondageEmbed, buttonYes, buttonNo);
+            console.log("TESTING AFTER", toString(...AllReason))
+            message.channel.send(SondageEmbed, buttonYes);
         } else {
             let ErrorArgsSondage = new Discord.MessageEmbed()
             .setColor('RED')
             .setAuthor('Attention')
+            .setThumbnail(message.author.displayAvatarURL())
             .addField('Erreur', 'Veuillez rentrez les 3 arguments demandez !')
             .setTimestamp()
             .setFooter("Created By DakoM#6583")
