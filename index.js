@@ -59,7 +59,6 @@ client.on('message', message => {
             .setStyle("red")
             message.channel.send("Votez", SondageEmbed, buttonYes, buttonNo);
         } else {
-            message.reply('Il manque des arguments')
             let ErrorArgsSondage = new Discord.MessageEmbed()
             .setColor('RED')
             .setAuthor('Attention')
