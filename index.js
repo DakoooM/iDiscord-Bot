@@ -1,90 +1,169 @@
 const Discord = require('discord.js');
 const axios = require('axios');
+const config = require('./config.json');
 
-let on = [
-    {
-        type : "ready",
-        cb : client => {
-            client.user.setActivity("1 Membres", {type: 'WATCHING'})
-            console.log(`${DakoM.client.user.tag} Is Online on Discord and activity 1 Members has been updated !`)
-        }
-    },
-    {
-        type : "message",
-        cb : message => {
-            
-        }
-    },
-]
-
-let tableau = [];
-axios.get('https://restcountries.eu/rest/v2/all')
-    .then(response => {
-        response.data.map(pays => {
-            tableau.push({name : pays.name, pays : pays.capital})
-        });
-    })
-  .catch(error => {
-    console.log(error);
-})
 
 class DiscordBot {
+    
+    constructor() {
 
-    constructor(token) {
-        
+        this.token = config.token;
         this.client = new Discord.Client();
-        this.prefix = "/";
-        this.DakoM = [];
-        this.ColorEmbed = "PURPLE";
-        this.token = token;
-        this.MessageButtons = require("discord-buttons");
+        this.interval = undefined
+        this.prefix = config.prefix;
+        this.ColorEmbed = '#35393c';
+
+        this.threshold = {
+            current : 0,
+            max : 60,
+            github : 30
+        }
+
+        this.embeds = {
+            sondage : new Discord.MessageEmbed(),
+            vote : new Discord.MessageEmbed(),
+            infosPerso : new Discord.MessageEmbed(),
+            gitHub : new Discord.MessageEmbed()
+        }
+
+        this.events = [
+            {
+                type : 'ready',
+                cb : () => {
+                    this.ready()
+                }
+            },
+            {
+                type : 'message',
+                cb : message => {       
+                    this.message(message)
+                }
+            },
+            {
+                type : 'clickButton',
+                isAsync: true,
+                cb : button => {
+                    this.clickButton(button)
+                }
+            }
+        ]
+
         this.init();
     }
 
-    init() {
-        on.map(action => { 
-            this.client.on(action.type, c => action.cb(this.client))
-        })
+    init = () => {
+        require("discord-buttons")(this.client);
+        
+        this.events.map(action =>
+            !action.isAsync
+            ?
+                this.client.on(action.type, obj => action.cb(obj))
+            :   
+                this.client.on(action.type, async obj => action.cb(obj))
+        );
 
         this.client.login(this.token)
+        this.startThread()
     }
-}
 
-let DakoM = new DiscordBot("ODAwODMyMTIxODQ0NzkzMzQ0.YAX3CA.mqSgmzGJ9rGAsMFbFpzOHJ4LbPI")
+    startThread = () => {
+        this.interval = setInterval(this.thread, 1000)
+    }
 
-require('discord-buttons')(DakoM.client);
+    message = message => {
+        let toSend
 
-getTime = function() {
-    var today = new Date();
-    var date = today.getDate()+'/'+ (today.getMonth()+1)+ "/" +today.getFullYear();
-    var time = today.getHours() + " heures " + today.getMinutes() + " minutes";
-    return dateTime = date+' - '+time;
-}
+        if (!message.content.startsWith(this.prefix) || message.author.bot) return;
+            let args = message.content.slice(this.prefix.length).trim().split(/ +/);
+            let command = args.shift().toLowerCase();
 
-
-DakoM.client.on('message', message => {
-	if (!message.content.startsWith(DakoM.prefix) || message.author.bot) return;
-
-	const args = message.content.slice(DakoM.prefix.length).trim().split(/ +/);
-	const command = args.shift().toLowerCase();
-
-    let locales ={
-
-        infos : {
-            fields : [
-                {
-                    title : "__I -__",
-                    message : "Je m\'appel Giovani et j\'ai actuellement 18 ans (19 le 2 septembre)"
+            let locales = {
+                
+                infos : {
+                    fields : [
+                        {
+                            title : "__I -__",
+                            message : "Je m\'appel Giovani et j\'ai actuellement 18 ans (19 le 2 septembre)"
+                        }
+                    ]
                 }
-            ]
+            }
+
+            switch (command) {
+
+                case "infos":
+                    toSend = this.messageInfos(message)
+                    break
+                case "sondage":
+                    toSend = this.sondage(args.slice(this.prefix.length + command.length))
+                    break;
+                case "pause":
+                    clearInterval(this.interval)
+                    break
+                default:
+                    toSend = this.errorCommandMessage()
+                    break
+            }
+
+            if (toSend !== undefined) {
+                setTimeout(() => message.delete(), 800);
+                message.channel.send(toSend)
+            }
+        }
+
+    thread = () => {
+        this.threshold.current++
+
+        if (this.threshold.current % this.threshold.github * 60 === 0) {
+            //this.gitHubRepos()
+            console.log("Appel de Github")
+        }
+
+        if (this.threshold.current == this.threshold.max)
+            this.threshold.current = 0
+        
+    }
+
+    ready = () => {
+        // Afficher tes embeds dans les channels respectif (Messages, Sondage, etc...)   
+        this.client.user.setActivity("1 Membres", {type: 'WATCHING'})
+        console.log(`${this.client.user.tag} Is Online on Discord and activity 1 Members has been updated !`)
+    }
+
+    clickButton = button => {
+        let disbut = require("discord-buttons")
+
+        if (button.id == "ClickOnYes") {
+
+            let AfterYes = new disbut.MessageButton()
+                .setLabel("Vote: Oui")
+                .setID("NoneYes")
+                .setStyle("green")
+                .setDisabled(true)
+                
+            button.message.edit({
+                button: AfterYes,
+                embed: this.embeds.sondage
+            });
+
+        } else if (button.id == "ClickOnNo") {
+            let AfterNo = new disbut.MessageButton()
+                .setLabel("Vote: Non")
+                .setID("NoneNo")
+                .setStyle("red")
+                .setDisabled(true)
+                
+            button.message.edit({
+                button: AfterNo,
+                embed: this.embeds.sondage
+            });
         }
     }
 
-	if (command === 'infos') {
-        setTimeout(() => message.delete(), 800);
-
-        let InfosEmbed = new DakoM.Discord.MessageEmbed()
-            .setColor('PURPLE')
+    messageInfos = message => {
+        
+        return this.embeds.infosPerso
+            .setColor(this.ColorEmbed)
             .setTitle('Qui suis-je ?')
             .setAuthor('Informations')
             .setThumbnail("https://media1.tenor.com/images/54cc77830f82ef67471d8d868d09ad2f/tenor.gif")
@@ -95,90 +174,83 @@ DakoM.client.on('message', message => {
             .addField('────────────────────────────────────', ' ឵ ឵   ឵ ឵ ')
             .setTimestamp()
             .setFooter("Created By DakoM#6583")
+    }
 
-        message.channel.send(InfosEmbed)
-    } else if (command === 'github') {
-        // new Promise(function() {
-        //     DakoM.Request.get({
-        //         url: "https://api.github.com/users/DakoooM/repos",
-        //         headers: {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'}
-        //     }, function(err, res, body) {
-        //         let repos = JSON.parse(body);
-        //         let reposName = [];
-        //         for (let i = 0; i < repos.length; i++) {
-        //             reposName.push(repos[i].name);
-        //         }
-        //         let gitHubRepo = new DakoM.Discord.MessageEmbed()
-        //         .setColor("GREEN")
-        //         .setTitle('[**__DakooM__**](https://github.com/DakoooM)')
-        //         .setAuthor('Github')
-        //         .addField(reposName, "")
-        //         .setThumbnail(message.author.displayAvatarURL())
-        //         .setTimestamp()
-        //         .setFooter(`Sondage Crée par MOI`)   
-        //         message.channel.send(gitHubRepo)
-        //     });
-        // });
-	} else if (command === 'sondage') {
-        if (args[0] !== undefined) {
-            SondageEmbed = new DakoM.Discord.MessageEmbed()
-            .setColor(ColorEmbed)
-            .setAuthor('Sondage')
-            .addField('__Question:__', ...args)
-            .setThumbnail(message.author.displayAvatarURL())
-            .setTimestamp()
-            .setFooter(`Sondage Crée par ${message.author.name}`)   
-            let buttonYes = new DakoM.MessageButtons()
-            .setLabel("Oui")
-            .setID("ClickOnYes")
-            .setStyle("green")
-            let buttonNo = new DakoM.MessageButtons()
-            .setLabel("Non")
-            .setID("ClickOnNo")
-            .setStyle("red")
+    gitHubRepos = () => {
+
+        axios.get('https://api.github.com/users/DakoooM/repos')
+            .then(repos => {
+                let excludeRepos = ["DakoooM", "TUTO-YTB"]
+
+                this.embeds.gitHub
+                    .setColor(this.ColorEmbed)
+                    .setTitle(`Repositories`)
+                    .setDescription('[**DakoooM**](https://github.com/DakoooM)')
+                    .addFields(repos.data.filter(data => !excludeRepos.includes(data.name))
+
+                        .map(data => {
+                             ({
+                                name : `⭐ (${data.stargazers_count} star${(() => data.stargazers_count > 1 ? "s" : "")()})`,
+                                value : `
+                                    [**${data.name}**](${data.html_url})
+                                `
+                            });
+                        })
+                    )
+            })
+            .catch(error => {
+                console.log("Il y a une erreur");
+            })
+        
+        let channel = this.client.channels.cache.find(channel => channel.id === "871158125460336690");
+
+        if (channel) channel.send("TESTING", this.embeds.gitHub)
+    }
+
+    sondage = message => {
+        let disbut = require("discord-buttons")
+
+        if (message !== undefined) {
+
+            this.embeds.sondage
+                .setColor(this.ColorEmbed)
+                .setAuthor('Sondage')
+                .addField('__Question:__', )
+                .setThumbnail(message.author.displayAvatarURL())
+                .setTimestamp()
+                .setFooter(`Sondage Crée par ${message.author.name}`) 
+
+            let buttonYes = new disbut.MessageButton()
+                .setLabel("Oui")
+                .setID("ClickOnYes")
+                .setStyle("green")
+            let buttonNo = new disbut.MessageButton()
+                .setLabel("Non")
+                .setID("ClickOnNo")
+                .setStyle("red")
+
             message.channel.send("Sondage", {
                 buttons: [buttonYes, buttonNo],
-                embed: SondageEmbed,
+                embed: this.embed.sondage,
             });
+
         } else {
-            let ErrorArgsSondage = new DakoM.Discord.MessageEmbed()
-            .setColor('RED')
+            let ErrorArgsSondage = disbut.MessageButton()
+            .setColor(this.ColorEmbed)
             .setAuthor('Attention')
             .setThumbnail(message.author.displayAvatarURL())
             .addField('Erreur', 'Veuillez rentrez les 3 arguments demandez !')
             .setTimestamp()
             .setFooter("Created By DakoM#6583")
+
             message.channel.send(ErrorArgsSondage);
+
             setTimeout(function() {
                 message.delete()
                 // ErrorArgsSondage.delete()
             }, 1500);
-        };
-	}
-});
-
-DakoM.client.on('clickButton', async (button) => {
-    if (button.id == "ClickOnYes") {
-        ColorEmbed = "GREEN";
-        let AfterYes = new DakoM.MessageButtons()
-        .setLabel("Vote: Oui")
-        .setID("NoneYes")
-        .setStyle("green")
-        .setDisabled(true)
-        button.message.edit({
-            button: AfterYes,
-            embed: SondageEmbed
-        });
-    } else if (button.id == "ClickOnNo") {
-        ColorEmbed = "RED";
-        let AfterNo = new DakoM.MessageButtons()
-        .setLabel("Vote: Non")
-        .setID("NoneNo")
-        .setStyle("red")
-        .setDisabled(true)
-        button.message.edit({
-            button: AfterNo,
-            embed: SondageEmbed
-        });
+        }
     }
-})
+}
+
+new DiscordBot();
