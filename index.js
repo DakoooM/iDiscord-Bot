@@ -1,10 +1,9 @@
 const Discord = require('discord.js');
 const axios = require('axios');
+const colors = require('colors');
 const config = require('./config.json');
 
-
 class DiscordBot {
-    
     constructor() {
 
         this.token = config.token;
@@ -23,7 +22,7 @@ class DiscordBot {
             sondage : new Discord.MessageEmbed(),
             vote : new Discord.MessageEmbed(),
             infosPerso : new Discord.MessageEmbed(),
-            gitHub : new Discord.MessageEmbed()
+            gitHub : undefined
         }
 
         this.events = [
@@ -78,7 +77,6 @@ class DiscordBot {
             let command = args.shift().toLowerCase();
 
             let locales = {
-                
                 infos : {
                     fields : [
                         {
@@ -90,7 +88,6 @@ class DiscordBot {
             }
 
             switch (command) {
-
                 case "infos":
                     toSend = this.messageInfos(message)
                     break
@@ -112,16 +109,14 @@ class DiscordBot {
         }
 
     thread = () => {
-        this.threshold.current++
-
-        if (this.threshold.current % this.threshold.github * 60 === 0) {
-            //this.gitHubRepos()
-            console.log("Appel de Github")
+        if (Math.ceil(this.threshold.current / 60) % this.threshold.github === 0) {
+            console.log(colors.red("ici"))
+            this.gitHubRepos()
         }
-
         if (this.threshold.current == this.threshold.max)
             this.threshold.current = 0
         
+        this.threshold.current++
     }
 
     ready = () => {
@@ -132,27 +127,22 @@ class DiscordBot {
 
     clickButton = button => {
         let disbut = require("discord-buttons")
-
         if (button.id == "ClickOnYes") {
-
             let AfterYes = new disbut.MessageButton()
                 .setLabel("Vote: Oui")
                 .setID("NoneYes")
                 .setStyle("green")
                 .setDisabled(true)
-                
             button.message.edit({
                 button: AfterYes,
                 embed: this.embeds.sondage
             });
-
         } else if (button.id == "ClickOnNo") {
             let AfterNo = new disbut.MessageButton()
                 .setLabel("Vote: Non")
                 .setID("NoneNo")
                 .setStyle("red")
                 .setDisabled(true)
-                
             button.message.edit({
                 button: AfterNo,
                 embed: this.embeds.sondage
@@ -161,7 +151,6 @@ class DiscordBot {
     }
 
     messageInfos = message => {
-        
         return this.embeds.infosPerso
             .setColor(this.ColorEmbed)
             .setTitle('Qui suis-je ?')
@@ -176,42 +165,50 @@ class DiscordBot {
             .setFooter("Created By DakoM#6583")
     }
 
-    gitHubRepos = () => {
-
+    gitHubRepos = async () => {
+        console.log(colors.green("Call de Github"))
         axios.get('https://api.github.com/users/DakoooM/repos')
-            .then(repos => {
+            .then(async repos => {
                 let excludeRepos = ["DakoooM", "TUTO-YTB"]
-
-                this.embeds.gitHub
+                let channel = this.client.channels.cache.find(channel => channel.id === config.gitHubChannel);
+                
+                setTimeout(() => {
+                    this.embeds.gitHub = new Discord.MessageEmbed()
                     .setColor(this.ColorEmbed)
                     .setTitle(`Repositories`)
                     .setDescription('[**DakoooM**](https://github.com/DakoooM)')
                     .addFields(repos.data.filter(data => !excludeRepos.includes(data.name))
-
                         .map(data => {
-                             ({
+                            return({
                                 name : `⭐ (${data.stargazers_count} star${(() => data.stargazers_count > 1 ? "s" : "")()})`,
                                 value : `
                                     [**${data.name}**](${data.html_url})
                                 `
-                            });
+                            })
                         })
                     )
+                    
+                    if (channel) 
+                        channel.send(this.embeds.gitHub) 
+                    else 
+                        console.log(colors.red("Impossible de trouver le channel"))
+                }, 1000)
+
+                this.client.channels.cache.get(config.gitHubChannel).messages.fetch({ limit: 10 })
+                    .then( () => {
+                        channel.bulkDelete(100)
+                })
+
             })
             .catch(error => {
                 console.log("Il y a une erreur");
+                console.error(error)
             })
-        
-        let channel = this.client.channels.cache.find(channel => channel.id === "871158125460336690");
-
-        if (channel) channel.send("TESTING", this.embeds.gitHub)
     }
 
     sondage = message => {
         let disbut = require("discord-buttons")
-
         if (message !== undefined) {
-
             this.embeds.sondage
                 .setColor(this.ColorEmbed)
                 .setAuthor('Sondage')
@@ -233,7 +230,6 @@ class DiscordBot {
                 buttons: [buttonYes, buttonNo],
                 embed: this.embed.sondage,
             });
-
         } else {
             let ErrorArgsSondage = disbut.MessageButton()
             .setColor(this.ColorEmbed)
@@ -250,6 +246,13 @@ class DiscordBot {
                 // ErrorArgsSondage.delete()
             }, 1500);
         }
+    }
+
+    getTime = () => {
+        let today = new Date();
+        let date = today.getDate()+'/'+ (today.getMonth()+1)+ "/" +today.getFullYear();
+        let time = today.getHours() + " heures " + today.getMinutes() + " minutes";
+        return dateTime = date+' - '+time;
     }
 }
 
