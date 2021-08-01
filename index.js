@@ -2,10 +2,10 @@ const Discord = require('discord.js');
 const axios = require('axios');
 const colors = require('colors');
 const config = require('./config.json');
+var MyFollowers = null;
 
 class DiscordBot {
     constructor() {
-
         this.token = config.token;
         this.client = new Discord.Client();
         this.interval = undefined
@@ -110,7 +110,6 @@ class DiscordBot {
 
     thread = () => {
         if (Math.ceil(this.threshold.current / 60) % this.threshold.github === 0) {
-            console.log(colors.red("ici"))
             this.gitHubRepos()
         }
         if (this.threshold.current == this.threshold.max)
@@ -150,7 +149,7 @@ class DiscordBot {
         }
     }
 
-    messageInfos = message => {
+    messageInfos = () => {
         return this.embeds.infosPerso
             .setColor(this.ColorEmbed)
             .setTitle('Qui suis-je ?')
@@ -162,21 +161,20 @@ class DiscordBot {
             .addField('__IV -__', 'Je code la pluspart du temps pour faire des ressources (scripts) pour le launcher FiveM')
             .addField('────────────────────────────────────', ' ឵ ឵   ឵ ឵ ')
             .setTimestamp()
-            .setFooter("Created By DakoM#6583")
+            .setFooter(`Created By DakoM#6583`)
     }
 
     gitHubRepos = async () => {
-        console.log(colors.green("Call de Github"))
         axios.get('https://api.github.com/users/DakoooM/repos')
             .then(async repos => {
                 let excludeRepos = ["DakoooM", "TUTO-YTB"]
                 let channel = this.client.channels.cache.find(channel => channel.id === config.gitHubChannel);
-                
+
                 setTimeout(() => {
                     this.embeds.gitHub = new Discord.MessageEmbed()
                     .setColor(this.ColorEmbed)
                     .setTitle(`Repositories`)
-                    .setDescription('[**DakoooM**](https://github.com/DakoooM)')
+                    .setDescription(`[**DakoooM ・ ${this.getGithubFollowers("DakoooM")} Followers**](https://github.com/DakoooM)`)
                     .addFields(repos.data.filter(data => !excludeRepos.includes(data.name))
                         .map(data => {
                             return({
@@ -187,6 +185,9 @@ class DiscordBot {
                             })
                         })
                     )
+                    .setThumbnail(config.myAvatar)
+                    .setImage("https://www.faithful3d.team/image/home/github_banner.jpg")
+                    .setFooter(`Dernière Modification ${this.getTime()}`)
                     
                     if (channel) 
                         channel.send(this.embeds.gitHub) 
@@ -194,16 +195,11 @@ class DiscordBot {
                         console.log(colors.red("Impossible de trouver le channel"))
                 }, 1000)
 
-                this.client.channels.cache.get(config.gitHubChannel).messages.fetch({ limit: 10 })
-                    .then( () => {
-                        channel.bulkDelete(100)
-                })
-
+                this.client.channels.cache.get(config.gitHubChannel).messages.fetch({limit: 10}).then(() => {channel.bulkDelete(10)})
             })
-            .catch(error => {
-                console.log("Il y a une erreur");
-                console.error(error)
-            })
+        .catch(error => {
+            console.log(colors.red("Il y a une erreur dans l'API github"));
+        })
     }
 
     sondage = message => {
@@ -215,8 +211,7 @@ class DiscordBot {
                 .addField('__Question:__', )
                 .setThumbnail(message.author.displayAvatarURL())
                 .setTimestamp()
-                .setFooter(`Sondage Crée par ${message.author.name}`) 
-
+                .setFooter(`Sondage Crée par ${message.author.name}`)
             let buttonYes = new disbut.MessageButton()
                 .setLabel("Oui")
                 .setID("ClickOnYes")
@@ -238,10 +233,8 @@ class DiscordBot {
             .addField('Erreur', 'Veuillez rentrez les 3 arguments demandez !')
             .setTimestamp()
             .setFooter("Created By DakoM#6583")
-
             message.channel.send(ErrorArgsSondage);
-
-            setTimeout(function() {
+            setTimeout(() => {
                 message.delete()
                 // ErrorArgsSondage.delete()
             }, 1500);
@@ -252,7 +245,16 @@ class DiscordBot {
         let today = new Date();
         let date = today.getDate()+'/'+ (today.getMonth()+1)+ "/" +today.getFullYear();
         let time = today.getHours() + " heures " + today.getMinutes() + " minutes";
-        return dateTime = date+' - '+time;
+        return '・ ' +date+' - '+time+ ' ・';
+    }
+
+    getGithubFollowers = (username) => {
+        axios.get(`https://api.github.com/users/${username}/followers`).then(follows => {
+            while (MyFollowers === null || MyFollowers === undefined) {
+                MyFollowers = follows.data.length;
+            }
+        })
+        return MyFollowers;
     }
 }
 
