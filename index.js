@@ -2,14 +2,7 @@ const Discord = require('discord.js');
 const axios = require('axios');
 const colors = require('colors');
 const config = require('./config.json');
-// const disbut = require("discord-buttons")
 var MyFollowers = null;
-
-// "gitHubChannel": "871191046263029820",
-// "sondageChannel":  "871469646598000750",
-// "LogsChannel": "872256152040267846",
-
-// config.LogsChannel
 
 class DiscordBot {
     constructor() {
@@ -120,7 +113,6 @@ class DiscordBot {
         }
 
         this.init();
-        // this.TypeError({content: "Aucune erreur just testing"})
     }
 
     init = () => {
@@ -133,7 +125,7 @@ class DiscordBot {
                 this.client.on(action.type, async (obj, args2, args3) => action.cb(obj, args2, args3))
         });
         this.client.login(this.token);
-        this.messageInfos();
+        
         // this.startThread()
     }
 
@@ -190,17 +182,6 @@ class DiscordBot {
         let args = message.content.slice(this.prefix.length).trim().split(/ +/);
         let commands = args.shift().toLowerCase();
 
-        // let locales = {
-        //     infos : {
-        //         fields : [
-        //             {
-        //                 title : "__I -__",
-        //                 message : "Je m\'appel Giovani et j\'ai actuellement 18 ans (19 le 2 septembre)"
-        //             }
-        //         ]
-        //     }
-        // }
-
         switch (commands) {
             case "sondage":
                 // args.slice(this.prefix.length + commands.length)
@@ -225,26 +206,6 @@ class DiscordBot {
             case "ClickOnPeutEtre":
                 break;
         }
-    }
-
-    messageInfos = () => {
-        let channelInfos = this.sendToChannelID(config.persoInfos)
-        this.embeds.infosPerso = new Discord.MessageEmbed()
-        this.embeds.infosPerso.setColor(this.ColorEmbed)
-        this.embeds.infosPerso.setTitle('Qui suis-je ?')
-        this.embeds.infosPerso.setAuthor('Informations')
-        this.embeds.infosPerso.setThumbnail("https://media1.tenor.com/images/54cc77830f82ef67471d8d868d09ad2f/tenor.gif")
-        this.embeds.infosPerso.addField('__I -__', 'Je m\'appel Giovani et j\'ai actuellement 18 ans (19 le 2 septembre)')
-        this.embeds.infosPerso.addField('__II -__', 'J\'aime particulièrement apprendre de nouvelle chose dans le développement depuis 1 an')
-        this.embeds.infosPerso.addField('__III -__', 'J\'aime utiliser __**Lua**/**Javascript**/**HTML**/**CSS**__ comme language de proggramation étant donner que je ne suis pas fullstack')
-        this.embeds.infosPerso.addField('__IV -__', 'Je code la pluspart du temps pour faire des ressources (scripts) pour le launcher FiveM')
-        this.embeds.infosPerso.addField('────────────────────────────────────', ' ឵ ឵   ឵ ឵ ')
-        this.embeds.infosPerso.setTimestamp()
-        this.embeds.infosPerso.setFooter(`Created By DakoM#6583`)
-        if (channelInfos)
-            channelInfos.send(this.embeds.infosPerso)
-        else
-            this.TypeError({content: `Channel InfosPerso =${channelInfos}`})
     }
 
     getFollowers = user => {
